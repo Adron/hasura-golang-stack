@@ -1,32 +1,31 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"time"
+	"github.com/machinebox/graphql"
 )
 
 func main() {
-	jsonData := map[string]string{
-		"query": `{
-		  tododeluge_Todo {
-			Id			
+	graphqlClient := graphql.NewClient("https://graphql-go-workflow.hasura.app/v1/graphql")
+	graphqlRequest := graphql.NewRequest(`
+		{
+		  tododeluge_Todo(where: {TodoId: {_is_null: true}}) {
+			Id
 			Details
 			Todo
+			Todos {
+			  Id
+			  Details
+			  Todo
+			}
 		  }
-		}`,
+		}
+	`)
+	var graphqlResponse interface{}
+	if err := graphqlClient.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+		fmt.Println(err)
 	}
-	jsonValue, _ := json.Marshal(jsonData)
-	request, err := http.NewRequest("POST", "https://graphql-go-workflow.hasura.app/v1/graphql", bytes.NewBuffer(jsonValue))
-	client := &http.Client{Timeout: time.Second * 10}
-	response, err := client.Do(request)
-	defer response.Body.Close()
-	if err != nil {
-		fmt.Printf("Failure Failure!: %s \n", err)
-	}
-	data, _ := ioutil.ReadAll(response.Body)
-	fmt.Println(string(data))
+
+	fmt.Println(graphqlResponse)
 }
